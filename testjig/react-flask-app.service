@@ -1,0 +1,13 @@
+[Unit]
+Description=Flask React testjig
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/rpi-final-acceptance-test/testjig/react-flask-app/api
+ExecStart=/home/pi/rpi-final-acceptance-test/.venv/bin/flask run
+Environment="PYTHONPATH=/home/pi/rpi-final-acceptance-test/testjig/testjig/python"
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

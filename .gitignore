@@ -1,0 +1,12 @@
+testjig/react-flask-app/api
+testjig/react-flask-app/node_modules
+testjig/react-flask-app/build
+testjig/react-flask-app/.pnp
+testjig/react-flask-app/npm-debug.log*
+testjig/react-flask-app/yarn-debug.log*
+testjig/react-flask-app/yarn-error.log*
+testjig/python/testjig.log
+testjig/files/*
+.venv/*
+**/__pycache__/*
+

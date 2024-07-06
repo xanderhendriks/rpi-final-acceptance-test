@@ -1,0 +1,5 @@
+firmware:
+  version: "0.11.0"
+  git_hash: "74d279bfc2"
+st-link:
+  comport: "/dev/ttyACM0"
