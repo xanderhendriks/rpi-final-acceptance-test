@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 import glob
 import logging
+import os
 import pytest
-import os.path
-import time
 
 from datetime import datetime
 from flask import Flask, request, send_file
