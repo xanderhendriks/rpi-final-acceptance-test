@@ -26,11 +26,11 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "start-api": "export PYTHONPATH=`pwd`/../python && cd api && ~/rpi-final-acceptance-test/.venv/bin/flask run --no-debugger",
+    "start": "react-scripts --max_old_space_size=4096 start",
+    "start-api": "export PYTHONPATH=~/rpi-final-acceptance-test/testjig/python && cd api && ~/rpi-final-acceptance-test/.venv/bin/flask run",
     "lint": "eslint ./src",
     "prettier": "prettier --write .",
-    "build": "react-scripts build",
+    "build": "react-scripts --max_old_space_size=4096 build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
