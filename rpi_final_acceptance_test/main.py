@@ -110,17 +110,20 @@ async def download_logs(e):
         ui.download(file)
 
 def handle_upload(event: events.UploadEventArguments) -> None:
+    wheel_pattern = r'^rpi_final_acceptance_test-(\d+\.\d+(\.\d+)?(\.dev\d+)?)-py3-none-any\.ewhl$'
     firmware_image_pattern = r'^sample_application-(\d+\.\d+\.\d+|[a-f0-9]{7,}-dev)\.bin$'
 
-    if re.match(firmware_image_pattern, event.name):
-        # Remove old image(s)
-        firmware_images = os.listdir('files/firmware/')
-        for firmware_image in firmware_images:
-            os.remove(f'files/firmware/{firmware_image}')
+    for pattern in [wheel_pattern, firmware_image_pattern]:
+        if re.match(pattern, event.name):
+            # Remove old image(s)
+            files = os.listdir('files')
+            for file in files:
+                if re.match(pattern, file):
+                    os.remove(f'files/{file}')
 
-        # Save new one
-        with open(f'files/firmware/{event.name}', 'wb') as downloaded_file:
-            downloaded_file.write(event.content.read())
+            # Save new one
+            with open(f'files/{event.name}', 'wb') as downloaded_file:
+                downloaded_file.write(event.content.read())
 
 @ui.page('/')
 def index():

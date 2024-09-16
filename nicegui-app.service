@@ -5,7 +5,8 @@ After=network.target
 [Service]
 User=pi
 WorkingDirectory=/home/pi/rpi_final_acceptance_test
-ExecStart=/home/pi/rpi_final_acceptance_test/.venv/bin/rpi_final_acceptance_test
+ExecStartPre=/home/pi/rpi_final_acceptance_test/.venv/bin/python -m nxs_python.install_new_wheel
+ExecStart=/home/pi/rpi_final_acceptance_test/.venv/bin/python -m rpi_final_acceptance_test.main
 Restart=always
 
 [Install]

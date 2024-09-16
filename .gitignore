@@ -1,4 +1,4 @@
-fat-testjig/files/*
+rpi_final_acceptance_test/version.py
 rpi_final_acceptance_test.egg-info/*
 dist/*
 .venv/*

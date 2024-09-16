@@ -1,9 +1,10 @@
-import zipfile
+import argparse
 import os
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from pathlib import Path
 
 
 key = bytes([0x32, 0x44, 0x6e, 0xca, 0xd9, 0x5c, 0x42, 0x9e, 0xeb, 0x33, 0xb9, 0x61, 0x9d, 0x8f, 0x52, 0x30, 0xdd, 0x8, 0x85, 0xb4, 0x78, 0x69, 0x8c, 0x65, 0x30, 0x2d, 0x9c, 0x4a, 0x6e, 0x51, 0xe2, 0x17])
@@ -53,28 +54,17 @@ def decrypt_file(input_file, output_file, key):
         f.write(plaintext)
 
 
-def determine_version():
-    return '1.1.1'
-
-
-def zip_files(filename, version):
-    with zipfile.ZipFile(filename, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-        zip_file.writestr('version', version)
-        zip_file.write('requirements.txt')
-        zip_file.write('local_file_picker.py')
-        zip_file.write('main.py')
-
-
 def main():
+    parser = argparse.ArgumentParser(description='Encrypt the given file')
+    parser.add_argument('filename', help='File to encrypt')
+    args = parser.parse_args()
+
     iv = os.urandom(16)  # Generate a random initialization vector
 
-    version = determine_version()
-    basename = f'testjig-{version}'
-
-    zip_files(f'{basename}.zip', version)
+    basename = Path(args.filename).with_suffix('')
 
     # Encrypt the file
-    encrypt_file(f'{basename}.zip', f'{basename}.upd', key, iv)
+    encrypt_file(f'{basename}.whl', f'{basename}.ewhl', key, iv)
 
 
 if __name__ == '__main__':
