@@ -1,0 +1,12 @@
+[Unit]
+Description=NiceGUI FAT testjig
+After=network.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/rpi_final_acceptance_test
+ExecStart=/home/pi/rpi_final_acceptance_test/.venv/bin/rpi_final_acceptance_test
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

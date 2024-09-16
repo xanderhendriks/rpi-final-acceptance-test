@@ -1,4 +1,6 @@
 fat-testjig/files/*
+rpi_final_acceptance_test.egg-info/*
+dist/*
 .venv/*
 **/__pycache__/*
 

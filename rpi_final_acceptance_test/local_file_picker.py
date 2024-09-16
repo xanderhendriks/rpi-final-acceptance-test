@@ -67,5 +67,5 @@ class LocalFilePicker(ui.label):
             self._update_grid()
 
     async def get_selected_files(self):
-        rows = await ui.run_javascript(f'getElement({self.grid.id}).gridOptions.api.getSelectedRows()')
+        rows = await self.grid.get_selected_rows()
         return [r['path'] for r in rows]
