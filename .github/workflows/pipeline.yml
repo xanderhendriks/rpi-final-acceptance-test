@@ -9,9 +9,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.7
       - name: Setup Python 3.9
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5.2.0
         with:
           python-version: 3.9
       - name: Install package and dependencies
@@ -27,7 +27,7 @@ jobs:
       - name: Build a binary wheel and a source tarball
         run: python -m build
       - name: Upload wheel file
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4.4.0
         with:
           name: wheel
           path: dist/**
