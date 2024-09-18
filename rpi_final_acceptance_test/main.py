@@ -1,16 +1,36 @@
 import asyncio
+import io
+import logging
 import os
 import pytest
 import re
+import sys
 import yaml
 
-from nicegui import app, ui, events
 from .local_file_picker import LocalFilePicker
 from .version import version
-from starlette.formparsers import MultiPartParser
 from collections import defaultdict
+from datetime import datetime
+from nicegui import app, ui, events
+from starlette.formparsers import MultiPartParser
+from nxs_python.encrypt_decrypt import encrypt_file, key
+from pathlib import Path
+
+logging_formatter = logging.Formatter('%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s')
+
+file_logging_handler = logging.FileHandler(f'files/logs/{datetime.now().strftime("%Y-%m-%d")}.log', 'a')
+file_logging_handler.setFormatter(logging_formatter)
+std_err_logging_handler = logging.StreamHandler()
+std_err_logging_handler.setFormatter(logging_formatter)
+
+file_logging = logging.getLogger('main')
+file_logging.setLevel(logging.INFO)
+file_logging.addHandler(file_logging_handler)
+file_logging.addHandler(std_err_logging_handler)
 
 MultiPartParser.max_file_size = 1024 * 1024 * 10  # 10 MB
+
+firmware_image_pattern = r'^sample_application-(\d+\.\d+\.\d+|[a-f0-9]{7,}-dev)\.bin$'
 
 local_file_picker = None
 test_results_table = None
@@ -18,6 +38,11 @@ test_cases_tree = None
 selected_test_cases = []
 st_link_port = None
 stepper = None
+firmware_version = '-.-.-'
+firmware_version_label = None
+operator = None
+serial_number = None
+
 
 def set_background(color: str) -> None:
     ui.query('body').style(f'background-color: {color}')
@@ -33,16 +58,32 @@ def pytest_collect_tests(directory):
     return items
 
 async def pytest_execute_tests(tests):
-    pytest_args = []
+    pytest_args = [f'--operator-name={operator.value}' ,f'--board-serial-number={serial_number.value}', '--json-report', '-W', 'ignore:Module already imported:pytest.PytestWarning']
 
     for test in tests:
         pytest_args += [f'{os.path.dirname(os.path.abspath(__file__))}/{test}']
 
-    print(pytest_args)
+    file_logging.info(pytest_args)
 
     await asyncio.sleep(2)
 
-    return pytest.main(pytest_args)
+    captured_output = io.StringIO()
+
+    # Redirect sys.stdout to the StringIO object
+    sys.stdout = captured_output
+
+    try:
+        result = pytest.main(pytest_args)
+    finally:
+        # Reset sys.stdout to its default value
+        sys.stdout = sys.__stdout__
+
+    # Get the output from the StringIO object
+    output = captured_output.getvalue()
+
+    file_logging.info(f'{output}')
+
+    return result
 
 class TestCollectorPlugin:
     """A pytest plugin to collect test items."""
@@ -69,6 +110,14 @@ for test_case in test_cases:
     grouped_tests[module_name].append({'id': f'{module_name}.py::{test_name}', 'label': test_name})
 
 test_cases_tree_list = [{'id': 'test cases', 'label': 'test cases', 'children': [{'id': module, 'label': module, 'children': children} for module, children in grouped_tests.items()]}]
+
+
+files = os.listdir('files')
+for file in files:
+    match = re.match(firmware_image_pattern, file)
+    if match:
+        firmware_version = match.group(1)
+
 
 def on_tick_test_cases(event):
     global selected_test_cases
@@ -103,18 +152,26 @@ def save_configuration():
 
 
 async def download_logs(e):
-    print(e.client)
+    file_logging.info(e.client)
     files = await local_file_picker.get_selected_files()
     for file in files:
-        print(file)
-        ui.download(file)
+        basename = Path(file).with_suffix('')
+        encrypt_file(f'{basename}.log', f'{basename}.elog', key, os.urandom(16))
+        file_logging.info(f'{basename}.elog')
+        ui.download(f'{basename}.elog')
+        os.remove(f'{basename}.elog')
 
 def handle_upload(event: events.UploadEventArguments) -> None:
+    global firmware_version
     wheel_pattern = r'^rpi_final_acceptance_test-(\d+\.\d+(\.\d+)?(\.dev\d+)?)-py3-none-any\.ewhl$'
-    firmware_image_pattern = r'^sample_application-(\d+\.\d+\.\d+|[a-f0-9]{7,}-dev)\.bin$'
 
     for pattern in [wheel_pattern, firmware_image_pattern]:
-        if re.match(pattern, event.name):
+        match = re.match(pattern, event.name)
+        if match:
+            if pattern == firmware_image_pattern:
+                firmware_version = match.group(1)
+                firmware_version_label.set_text(firmware_version)
+
             # Remove old image(s)
             files = os.listdir('files')
             for file in files:
@@ -133,6 +190,9 @@ def index():
     global selected_test_cases
     global st_link_port
     global stepper
+    global firmware_version_label
+    global operator
+    global serial_number
 
     with ui.header().classes(replace='row items-center') as header:
         with ui.tabs() as tabs:
@@ -143,13 +203,13 @@ def index():
         with ui.tab_panel('Test'):
             with ui.stepper().props('vertical').classes('w-full') as stepper:
                 with ui.step('Test data'):
-                    ui.input(label='Operator').props('rounded outlined dense')
+                    operator = ui.input(label='Operator').props('rounded outlined dense')
                     with ui.stepper_navigation():
                         ui.button('Next', on_click=stepper.next)
                         ui.button('Back', on_click=stepper.previous)
                 with ui.step('Device data'):
                     ui.input(label='Revision').props('rounded outlined dense')
-                    ui.input(label='Serial number').props('rounded outlined dense')
+                    serial_number = ui.input(label='Serial number').props('rounded outlined dense')
                     with ui.stepper_navigation():
                         ui.button('Next', on_click=stepper.next)
                         ui.button('Back', on_click=stepper.previous)
@@ -182,7 +242,13 @@ def index():
                         ui.button('Download', on_click=download_logs)
 
                 with ui.tab_panel('Update'):
-                    ui.label(f'version: {version}')
+                    with ui.card():
+                        with ui.row():
+                            ui.label('gui version:').tailwind.font_weight('extrabold')
+                            ui.label(version)
+                        with ui.row():
+                            ui.label('firmware version:').tailwind.font_weight('extrabold')
+                            firmware_version_label = ui.label(firmware_version)
                     ui.upload(auto_upload=True, label='Upload update file', on_upload=handle_upload).classes('max-w-full')
                     ui.button('Restart', on_click=app.shutdown)
 

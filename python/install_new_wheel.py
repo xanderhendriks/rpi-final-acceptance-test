@@ -7,9 +7,10 @@ from nxs_python.encrypt_decrypt import decrypt_file, key
 from pathlib import Path
 
 def main():
-    wheel_pattern = r'/^rpi_final_acceptance_test-(\d+\.\d+(\.\d+)?(\.dev\d+)?)-py3-none-any\.ewhl$/gm'
+    wheel_pattern = r'^rpi_final_acceptance_test-(\d+\.\d+(\.\d+)?(\.dev\d+)?)-py3-none-any\.ewhl$'
     iv = os.urandom(16)  # Generate a random initialization vector
 
+    print('looking for encrypted wheel files')
     files = os.listdir('files')
     for file in files:
         if re.match(wheel_pattern, file):

@@ -6,7 +6,7 @@ import subprocess
 import yaml
 
 
-pytest_logging = logging.getLogger('pytest_logging')
+file_logging = logging.getLogger()
 
 
 # def program_stm32_flash(binary_file):
@@ -23,10 +23,10 @@ pytest_logging = logging.getLogger('pytest_logging')
 # @pytest.fixture(scope="session", autouse=True)
 # def jig(jig_config):
 #     filename = f"sample_application-{jig_config['firmware']['version']}.bin"
-#     pytest_logging.info(f'Programming target with {filename}')
+#     file_logging.info(f'Programming target with {filename}')
 #     program_stm32_flash(f"{os.path.dirname(os.path.realpath(__file__))}/../../files/firmware/{filename}")
 #     yield
-#     pytest_logging.info('teardown')
+#     file_logging.info('teardown')
 
 
 # @pytest.fixture(scope="session")
@@ -46,24 +46,22 @@ pytest_logging = logging.getLogger('pytest_logging')
 #     return jig_config['firmware']['git_hash']
 
 
-# @pytest.fixture(scope="session")
-# def board_serial_number(pytestconfig):
-#     return pytestconfig.getoption("--board-serial-number")
+@pytest.fixture(scope="session")
+def board_serial_number(pytestconfig):
+    return pytestconfig.getoption("--board-serial-number")
 
 
-# @pytest.fixture(scope="session")
-# def operator_name(pytestconfig):
-#     return pytestconfig.getoption("--operator-name")
+@pytest.fixture(scope="session")
+def operator_name(pytestconfig):
+    return pytestconfig.getoption("--operator-name")
 
 
 # @pytest.fixture(scope="function", autouse=True)
 # def log_test_start(request):
-#     pytest_logging.info('=' * 5 + request.node.name.ljust(70, '='))
-#     pytest_logging.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+#     file_logging.info('=' * 5 + request.node.name.ljust(70, '='))
+#     file_logging.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
 
-# def pytest_addoption(parser):
-#     parser.addoption("--board-serial-number", action="store", default="XXXXXXXXXX")
-#     parser.addoption("--operator-name", action="store")
-#     parser.addoption("--config", action="store", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-#                                                                       "config_testjig.yml"))
+def pytest_addoption(parser):
+    parser.addoption("--board-serial-number", action="store", default="XXXXXXXXXX")
+    parser.addoption("--operator-name", action="store")

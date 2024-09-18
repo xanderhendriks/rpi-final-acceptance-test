@@ -1,11 +1,13 @@
 import logging
 import time
 
-pytest_logging = logging.getLogger('pytest_logging')
+file_logging = logging.getLogger()
 
 
 def test_version():
-    pass
+    a = 5
+    b = 10
+    assert a == b, f"Expected {a} to be equal to {b}, but they are not."
 
 
 def test_sensor():
