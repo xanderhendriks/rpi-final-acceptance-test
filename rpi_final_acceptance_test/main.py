@@ -1,9 +1,11 @@
 import asyncio
 import io
+import json
 import logging
 import os
 import pytest
 import re
+import subprocess
 import sys
 import yaml
 
@@ -42,10 +44,12 @@ firmware_version = '-.-.-'
 firmware_version_label = None
 operator = None
 serial_number = None
+test_results_log = None
 
 
 def set_background(color: str) -> None:
     ui.query('body').style(f'background-color: {color}')
+
 
 def pytest_collect_tests(directory):
     """Collect pytest items using pytest's collection mechanism."""
@@ -57,8 +61,9 @@ def pytest_collect_tests(directory):
 
     return items
 
+
 async def pytest_execute_tests(tests):
-    pytest_args = [f'--operator-name={operator.value}' ,f'--board-serial-number={serial_number.value}', '--json-report', '-W', 'ignore:Module already imported:pytest.PytestWarning']
+    pytest_args = [f'--st-link-com-port={st_link_port.value}', f'--firmware-version={firmware_version}', f'--operator-name={operator.value}' ,f'--board-serial-number={serial_number.value}', '--json-report', '-s', '-W', 'ignore:Module already imported:pytest.PytestWarning']
 
     for test in tests:
         pytest_args += [f'{os.path.dirname(os.path.abspath(__file__))}/{test}']
@@ -81,9 +86,20 @@ async def pytest_execute_tests(tests):
     # Get the output from the StringIO object
     output = captured_output.getvalue()
 
-    file_logging.info(f'{output}')
+    with open('.report.json') as json_report_file:
+        json_report = json.load(json_report_file)
+
+    file_logging.info(output)
+    if result != 0:
+        result_string = json_report['tests'][0]['call']['crash']['message']
+        match = re.search(r'AssertionError:\s*(.*?)\s*assert', result_string)
+        if match:
+            test_results_log.push(match.group(1))
+        else:
+            test_results_log.push(result_string)
 
     return result
+
 
 class TestCollectorPlugin:
     """A pytest plugin to collect test items."""
@@ -94,6 +110,7 @@ class TestCollectorPlugin:
     def pytest_collection_modifyitems(self, session, config, items):
         """Called after pytest has collected all items."""
         self.items.extend(items)
+
 
 with open(f"{os.getcwd()}/configuration.yaml", 'r') as file:
     configuration = yaml.safe_load(file)
@@ -111,7 +128,6 @@ for test_case in test_cases:
 
 test_cases_tree_list = [{'id': 'test cases', 'label': 'test cases', 'children': [{'id': module, 'label': module, 'children': children} for module, children in grouped_tests.items()]}]
 
-
 files = os.listdir('files')
 for file in files:
     match = re.match(firmware_image_pattern, file)
@@ -123,9 +139,11 @@ def on_tick_test_cases(event):
     global selected_test_cases
     selected_test_cases = event.value
 
+
 async def execute_tests():
     stepper.next()
     test_results_table.style("background-color: white")
+    test_results_log.clear()
 
     rows = []
     for test_case in selected_test_cases:
@@ -159,7 +177,7 @@ async def download_logs(e):
         encrypt_file(f'{basename}.log', f'{basename}.elog', key, os.urandom(16))
         file_logging.info(f'{basename}.elog')
         ui.download(f'{basename}.elog')
-        os.remove(f'{basename}.elog')
+
 
 def handle_upload(event: events.UploadEventArguments) -> None:
     global firmware_version
@@ -193,6 +211,7 @@ def index():
     global firmware_version_label
     global operator
     global serial_number
+    global test_results_log
 
     with ui.header().classes(replace='row items-center') as header:
         with ui.tabs() as tabs:
@@ -217,7 +236,7 @@ def index():
                     test_cases_tree = ui.tree(test_cases_tree_list, tick_strategy='leaf', on_tick=on_tick_test_cases)
                     test_cases_tree.expand(['test cases'])
                     with ui.stepper_navigation():
-                        ui.button('Next', on_click=lambda: execute_tests())
+                        ui.button('Execute test', on_click=lambda: execute_tests())
                         ui.button('Back', on_click=stepper.previous)
                 with ui.step('Execute tests'):
                     columns = [
@@ -225,6 +244,8 @@ def index():
                         {'name': 'result', 'label': 'Result', 'field': 'result', 'sortable': True},
                     ]
                     test_results_table = ui.table(columns=columns, rows=[], row_key='name')
+                    test_results_log = ui.log().classes('max-w-full h-40')
+
                     with ui.stepper_navigation():
                         ui.button('Done', on_click=lambda: stepper.set_value('Device data'))
                         ui.button('Back', on_click=stepper.previous)
