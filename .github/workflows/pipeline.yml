@@ -26,7 +26,9 @@ jobs:
       #   env:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build a binary wheel and a source tarball
-        run: python -m build
+        run: |
+          python -m build
+          find dist -name "*.whl" -exec python python/encrypt_decrypt.py {} \;
       - name: Upload wheel file
         uses: actions/upload-artifact@v4.4.0
         with:
