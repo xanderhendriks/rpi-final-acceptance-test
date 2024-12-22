@@ -1,13 +1,10 @@
 import datetime
-import logging
+import os
 import serial
 import time
 import pytest
 
 from threading import Thread
-
-
-file_logging = logging.getLogger('main')
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -54,32 +51,21 @@ class SerialCommandResponse:
 
 @pytest.fixture(scope="session")
 def serial_command_response(pytestconfig):
-    return SerialCommandResponse(pytestconfig.getoption('--st-link-com-port'))
+    # return SerialCommandResponse(os.environ.get('st-link-com-port'))
+    print('serial_command_response fixture')
+    return None
 
 
 @pytest.fixture(scope="session")
 def board_serial_number(pytestconfig):
-    return pytestconfig.getoption("--board-serial-number")
+    return os.environ.get("board-serial-number")
 
 
 @pytest.fixture(scope="session")
 def operator_name(pytestconfig):
-    return pytestconfig.getoption("--operator-name")
+    return os.environ.get("operator-name")
 
 
 @pytest.fixture(scope="session")
 def firmware_version(pytestconfig):
-    return pytestconfig.getoption("--firmware-version")
-
-
-@pytest.fixture(scope="function", autouse=True)
-def log_test_start(request):
-    file_logging.info('=' * 5 + request.node.name.ljust(70, '='))
-    file_logging.info(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-
-
-def pytest_addoption(parser):
-    parser.addoption('--st-link-com-port', action='store')
-    parser.addoption("--board-serial-number", action="store")
-    parser.addoption("--operator-name", action="store")
-    parser.addoption("--firmware-version", action="store")
+    return os.environ.get('firmware_version')

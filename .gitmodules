@@ -1,0 +1,3 @@
+[submodule "nxs_python"]
+	path = nxs_python
+	url = git@github.com:xanderhendriks/nxs-python.git
